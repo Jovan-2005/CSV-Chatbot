@@ -63,7 +63,7 @@ with st.sidebar:
     if st.button("Clear Chat History"):
 
         st.session_state.messages = []
-        st.experimental_rerun()
+        st.rerun()
 
 # Initialize chat history
 if "messages" not in st.session_state:
@@ -90,45 +90,52 @@ if api_key and uploaded_file:
     with open(file_path, "wb") as f:
         f.write(uploaded_file.getbuffer())
     
-    try:
-        agent = create_pd_agent(file_path, api_key)
+    # Cache agent in session_state so it's not recreated on every rerun
+    if "agent" not in st.session_state or st.session_state.get("current_file") != uploaded_file.name:
+        try:
+            with st.spinner("Initializing AI agent..."):
+                st.session_state.agent = create_pd_agent(file_path, api_key)
+                st.session_state.current_file = uploaded_file.name
+        except Exception as e:
+            st.error(f"Failed to initialize agent: {e}")
+            st.stop()
+    
+    agent = st.session_state.agent
+    
+    # User input
+    if prompt := st.chat_input("Ask a question about your data..."):
+        # Add user message to chat history
+        st.session_state.messages.append({"role": "user", "type": "text", "content": prompt})
         
-        # User input
-        if prompt := st.chat_input("Ask a question about your data..."):
-            # Add user message to chat history
-            st.session_state.messages.append({"role": "user", "type": "text", "content": prompt})
-            
-            # Display user message in chat message container
-            with st.chat_message("user"):
-                st.markdown(prompt)
+        # Display user message in chat message container
+        with st.chat_message("user"):
+            st.markdown(prompt)
 
-            # Display assistant response in chat message container
-            with st.chat_message("assistant"):
-                with st.spinner("Analyzing data..."):
-                    try:
-                        response_str = agent.run(prompt)
-                        decoded_response = decode_response(response_str)
+        # Display assistant response in chat message container
+        with st.chat_message("assistant"):
+            with st.spinner("Analyzing data..."):
+                try:
+                    result = agent.invoke({"input": prompt})
+                    response_str = result.get("output", str(result)) if isinstance(result, dict) else str(result)
+                    decoded_response = decode_response(response_str)
+                    
+                    # Handle different response types
+                    if "answer" in decoded_response:
+                        st.write(decoded_response["answer"])
+                        st.session_state.messages.append({"role": "assistant", "type": "text", "content": decoded_response["answer"]})
+                    
+                    if "chart" in decoded_response:
+                        st.image("./chart_image/chart.png")
+                        st.session_state.messages.append({"role": "assistant", "type": "image", "content": "./chart_image/chart.png"})
                         
-                        # Handle different response types
-                        if "answer" in decoded_response:
-                            st.write(decoded_response["answer"])
-                            st.session_state.messages.append({"role": "assistant", "type": "text", "content": decoded_response["answer"]})
+                    if "table" in decoded_response:
+                        data = decoded_response["table"]
+                        df = pd.DataFrame(data["data"], columns=data["columns"])
+                        st.table(df)
+                        st.session_state.messages.append({"role": "assistant", "type": "table", "content": df})
                         
-                        if "chart" in decoded_response:
-                            st.image("./chart_image/chart.png")
-                            st.session_state.messages.append({"role": "assistant", "type": "image", "content": "./chart_image/chart.png"})
-                            
-                        if "table" in decoded_response:
-                            data = decoded_response["table"]
-                            df = pd.DataFrame(data["data"], columns=data["columns"])
-                            st.table(df)
-                            st.session_state.messages.append({"role": "assistant", "type": "table", "content": df})
-                            
-                    except Exception as e:
-                        st.error(f"An error occurred: {e}")
-                        
-    except Exception as e:
-        st.error(f"Failed to initialize agent: {e}")
+                except Exception as e:
+                    st.error(f"An error occurred: {e}")
 
 elif not api_key:
     st.warning("Please enter your Google Gemini API Key in the sidebar to proceed.")
