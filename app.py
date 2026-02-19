@@ -11,14 +11,20 @@ def decode_response(response: str) -> dict:
         # Clean up the response string
         clean_response = response.strip()
         
-        # Try to find JSON block { ... } if it exists anywhere in the text
+        # Try to find the last JSON-looking block { ... } in the text
         import re
-        json_match = re.search(r'\{(?:[^{}]|(?R))*\}', clean_response)
-        if json_match:
-            try:
-                return json.loads(json_match.group())
-            except:
-                pass
+        try:
+            # Look for all curly brace blocks and try parsing them from largest to smallest
+            # This handles cases where there might be multiple or nested JSON-like structures
+            matches = re.finditer(r'\{.*\}', clean_response, re.DOTALL)
+            all_matches = sorted([m.group() for m in matches], key=len, reverse=True)
+            for potential_json in all_matches:
+                try:
+                    return json.loads(potential_json)
+                except:
+                    continue
+        except:
+            pass
 
         # Fallback to standard clean logic
         if clean_response.startswith("```json"):
@@ -144,19 +150,36 @@ if api_key and uploaded_file:
                         
                     if "table" in decoded_response:
                         data = decoded_response["table"]
-                        df = pd.DataFrame(data["data"], columns=data["columns"])
-                        st.table(df)
-                        st.session_state.messages.append({"role": "assistant", "type": "table", "content": df})
+                        df_res = pd.DataFrame(data["data"], columns=data["columns"])
+                        st.table(df_res)
+                        st.session_state.messages.append({"role": "assistant", "type": "table", "content": df_res})
                         found_type = True
                     
-                    # Fallback if no specific keys found
+                    # Fallback: Check if there's a markdown table in the raw string
+                    if not found_type and "|" in response_str and "---" in response_str:
+                        try:
+                            # Try to extract and display markdown table
+                            st.markdown(response_str)
+                            st.session_state.messages.append({"role": "assistant", "type": "text", "content": response_str})
+                            found_type = True
+                        except:
+                            pass
+
+                    # Final Fallback if no specific keys found
                     if not found_type:
                         st.write(response_str)
                         st.session_state.messages.append({"role": "assistant", "type": "text", "content": response_str})
+                    
+                    # Add a debug expander for raw output
+                    with st.expander("🔍 View Raw Agent Output"):
+                        st.code(response_str)
                         
                 except Exception as e:
                     st.error(f"An error occurred: {e}")
                     st.session_state.messages.append({"role": "assistant", "type": "text", "content": f"Error: {e}"})
+                    # Show raw output even on error
+                    with st.expander("🔍 View Raw Agent Output"):
+                        st.code(str(result))
 
 elif not api_key:
     st.warning("Please enter your Google Gemini API Key in the sidebar to proceed.")
