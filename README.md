@@ -36,7 +36,7 @@ This application allows you to chat with any CSV file using natural language. It
 ## ▶️ Usage
 1. Run the application:
    ```bash
-   streamlit run run.py
+   streamlit run app.py
    ```
 2. **Upload** your CSV file in the sidebar.
 3. **Start Chatting**!
