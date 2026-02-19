@@ -21,24 +21,24 @@ def create_pd_agent(filename: str, api_key: str):
         df = pd.read_csv(filename, encoding='latin1')
     
     # Initialize the Groq model
+    model_name = os.getenv("MODEL_NAME", "llama-3.1-8b-instant")
     llm = ChatGroq(
-        model="llama-3.3-70b-versatile",
+        model=model_name,
         temperature=0,
         max_retries=5,
         request_timeout=60
     )
 
     # Custom prompt to force tool usage and JSON output
-    prefix = """
-    You are a data analysis expert. You have access to a pandas dataframe 'df'.
-    
-    IMPORTANT RULES:
-    1. If you need to answer a question about the data, ALWAYS use the 'python_repl_ast' tool.
-    2. NEVER return python code as your Final Answer. You must EXECUTE it.
-    3. For charts: If asked for a visualization, EXECUTE code to create the plot, save it to './chart_image/chart.png', and then your Final Answer must be EXACTLY: {{"chart": "Chart generated successfully"}}
-    4. For tables: Your Final Answer must be a JSON object like: {{"table": {{"columns": ["col1", "col2"], "data": [[1, 2], [3, 4]]}}}}
-    5. For text: Your Final Answer must be a JSON object like: {{"answer": "Your detailed summary"}}
-    """
+    prefix = """You are a data analysis assistant. You have a pandas dataframe called 'df'.
+RULES:
+1. Use the python_repl_ast tool to run Python code on df.
+2. Get the answer efficiently.
+3. Once you have the answer, respond with Final Answer immediately.
+4. For charts: save to './chart_image/chart.png' and reply: {{"chart": "Chart generated successfully"}}
+5. For tables: reply with: {{"table": {{"columns": [...], "data": [...]}}}}
+6. For text answers: reply with: {{"answer": "your answer here"}}
+"""
 
     # Create the agent
     return create_pandas_dataframe_agent(
@@ -46,10 +46,11 @@ def create_pd_agent(filename: str, api_key: str):
         df, 
         verbose=True, 
         allow_dangerous_code=True,
-        handle_parsing_errors=True,
         prefix=prefix,
         include_df_in_prompt=True,
-        number_of_head_rows=5
+        number_of_head_rows=3,
+        max_iterations=8,
+        early_stopping_method="generate"
     )
 
 def query_pd_agent(agent, query):
