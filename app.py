@@ -8,14 +8,25 @@ from agent import create_pd_agent
 def decode_response(response: str) -> dict:
     """This function converts the string response from the model to a dictionary object."""
     try:
-        # Clean up the response string, sometimes LLMs add markdown code blocks
+        # Clean up the response string
         clean_response = response.strip()
+        
+        # Try to find JSON block { ... } if it exists anywhere in the text
+        import re
+        json_match = re.search(r'\{(?:[^{}]|(?R))*\}', clean_response)
+        if json_match:
+            try:
+                return json.loads(json_match.group())
+            except:
+                pass
+
+        # Fallback to standard clean logic
         if clean_response.startswith("```json"):
             clean_response = clean_response[7:]
         if clean_response.endswith("```"):
             clean_response = clean_response[:-3]
         return json.loads(clean_response)
-    except json.JSONDecodeError:
+    except Exception:
         return {"answer": response}
 
 def write_response(response_dict: dict):
@@ -120,22 +131,32 @@ if api_key and uploaded_file:
                     decoded_response = decode_response(response_str)
                     
                     # Handle different response types
+                    found_type = False
                     if "answer" in decoded_response:
                         st.write(decoded_response["answer"])
                         st.session_state.messages.append({"role": "assistant", "type": "text", "content": decoded_response["answer"]})
+                        found_type = True
                     
                     if "chart" in decoded_response:
                         st.image("./chart_image/chart.png")
                         st.session_state.messages.append({"role": "assistant", "type": "image", "content": "./chart_image/chart.png"})
+                        found_type = True
                         
                     if "table" in decoded_response:
                         data = decoded_response["table"]
                         df = pd.DataFrame(data["data"], columns=data["columns"])
                         st.table(df)
                         st.session_state.messages.append({"role": "assistant", "type": "table", "content": df})
+                        found_type = True
+                    
+                    # Fallback if no specific keys found
+                    if not found_type:
+                        st.write(response_str)
+                        st.session_state.messages.append({"role": "assistant", "type": "text", "content": response_str})
                         
                 except Exception as e:
                     st.error(f"An error occurred: {e}")
+                    st.session_state.messages.append({"role": "assistant", "type": "text", "content": f"Error: {e}"})
 
 elif not api_key:
     st.warning("Please enter your Google Gemini API Key in the sidebar to proceed.")
