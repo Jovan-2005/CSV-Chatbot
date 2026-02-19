@@ -42,7 +42,7 @@ This application allows you to chat with any CSV file using natural language. It
 3. **Start Chatting**!
 
 ## 📂 Project Structure
-- `run.py`: Main application code (Streamlit UI).
+- `app.py`: Main application code (Streamlit UI).
 - `agent.py`: Logic for the LangChain Pandas Agent.
 - `.env`: Securely stores your API key.
 - `requirements.txt`: Project dependencies.
