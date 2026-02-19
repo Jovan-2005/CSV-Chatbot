@@ -30,14 +30,24 @@ def create_pd_agent(filename: str, api_key: str):
     )
 
     # Custom prompt to force tool usage and JSON output
-    prefix = """You are a data analysis assistant. You have a pandas dataframe called 'df'.
-RULES:
-1. Use the python_repl_ast tool to run Python code on df.
-2. Get the answer efficiently.
-3. Once you have the answer, respond with Final Answer immediately.
-4. For charts: save to './chart_image/chart.png' and reply: {{"chart": "Chart generated successfully"}}
-5. For tables: reply with: {{"table": {{"columns": [...], "data": [...]}}}}
-6. For text answers: reply with: {{"answer": "your answer here"}}
+    prefix = """You are a helpful data analyst. You are working with a pandas dataframe 'df'.
+You MUST use the following format for every step:
+
+Thought: you should always think about what to do
+Action: the action to take, should be exactly 'python_repl_ast'
+Action Input: the python code to execute
+Observation: the result of the action
+... (this Thought/Action/Action Input/Observation can repeat N times)
+Thought: I now know the final answer
+Final Answer: your final response (MUST be JSON as per rules below)
+
+RULES FOR FINAL ANSWER:
+1. If you output a table, format it as a JSON object:
+{{"table": {{"columns": ["col1", "col2"], "data": [[1, 2], [3, 4]]}}}}
+2. If you output text, wrap it in:
+{{"answer": "your text"}}
+
+Begin!
 """
 
     # Create the agent
@@ -48,9 +58,9 @@ RULES:
         allow_dangerous_code=True,
         prefix=prefix,
         include_df_in_prompt=True,
-        number_of_head_rows=3,
-        max_iterations=8,
-        early_stopping_method="generate"
+        number_of_head_rows=5,
+        max_iterations=20,
+        early_stopping_method="force"
     )
 
 def query_pd_agent(agent, query):
@@ -60,7 +70,7 @@ def query_pd_agent(agent, query):
     # We now pass the raw query because the rules are in the prefix
     try:
         # We add a small reminder to the query to ensure JSON output
-        full_query = f"{query}. REMEMBER: Your final answer MUST be a valid JSON string as per the rules."
+        full_query = f"{query}. IMPORTANT: Please try to answer using the JSON format (answer or table keys) if possible."
         response = agent.run(full_query)
         return str(response)
     except Exception as e:
