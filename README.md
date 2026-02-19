@@ -1,51 +1,56 @@
-# 🤖 Intelligent CSV Chat & Analysis (Powered by Groq)
+# 🤖 Intelligent CSV Chat & Analysis
 
-This application allows you to chat with any CSV file using natural language. It uses **Groq** (Llama 3.3) for incredibly fast reasoning and **Streamlit** for a modern chat interface.
+This application allows you to chat with any CSV file using natural language. It uses **Groq** for high-speed reasoning, **LangChain** for agent orchestration, and **Streamlit** for a modern, responsive chat interface.
 
-## 🚀 Features
-- **Chat with Data**: Ask questions in plain English (e.g., "What is the average sales?", "How many user churned?").
-- **Instant Charts**: Automatically generates bar charts, line graphs, and pie charts using Matplotlib.
-- **Smart Tables**: Displays filtered data tables when requested.
-- **Universal Support**: Works with *any* CSV file (automatically detects schema).
-- **Free & Fast**: Uses the Groq Free Beta API.
+## 🚀 Key Features
+
+-   **Chat with Data**: Ask questions in plain English (e.g., "What are the top 5 records?", "Summarize the average rating by category").
+-   **Configurable Models**: Switch between `llama-3.3-70b-versatile` and `llama-3.1-8b-instant` via environment variables.
+-   **Robust Visualization**: Automatically generates and displays charts and tables.
+-   **Infinite Loop Protection**: Built-in iteration limits and repetition guards to ensure the agent always provides a response.
+-   **Smart Data Parsing**: Advanced logic to extract and render tables even if the LLM output is not perfectly formatted.
+-   **Performance Caching**: Intelligent session management so you only initialize the AI agent once per file.
 
 ## 🛠️ Tech Stack
-- **Frontend**: Streamlit
-- **LLM**: Meta Llama 3.3 (via Groq API)
-- **Orchestrator**: LangChain
-- **Data Analysis**: Pandas (Python Agent)
 
-## 📦 Installation
-1. **Clone/Download** this repository.
-2. **Create a Virtual Environment**:
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: .\venv\Scripts\activate
-   ```
-3. **Install Dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
-4. **Setup API Key**:
-   - Rename `.env.example` to `.env` (or create a `.env` file).
-   - Add your [Groq API Key](https://console.groq.com/keys):
-     ```text
-     GROQ_API_KEY=your_key_here
-     ```
+-   **Frontend**: Streamlit
+-   **LLM**: Meta Llama 3 via Groq API
+-   **Orchestrator**: LangChain (Pandas DataFrame Agent)
+-   **Data Analysis**: Pandas
+
+## 📦 Installation & Setup
+
+1.  **Clone the repository**.
+2.  **Create a Virtual Environment**:
+    ```bash
+    python -m venv venv
+    .\venv\Scripts\activate  # Windows
+    # source venv/bin/activate # Linux/Mac
+    ```
+3.  **Install Dependencies**:
+    ```bash
+    pip install -r requirements.txt
+    ```
+4.  **Configure Environment**:
+    Create a `.env` file in the root directory:
+    ```text
+    GROQ_API_KEY=your_groq_api_key
+    MODEL_NAME=llama-3.1-8b-instant
+    ```
 
 ## ▶️ Usage
-1. Run the application:
-   ```bash
-   streamlit run app.py
-   ```
-2. **Upload** your CSV file in the sidebar.
-3. **Start Chatting**!
+
+1.  Start the application:
+    ```bash
+    streamlit run app.py
+    ```
+2.  **Upload** your CSV file in the sidebar.
+3.  **Start Chatting**!
 
 ## 📂 Project Structure
-- `app.py`: Main application code (Streamlit UI).
-- `agent.py`: Logic for the LangChain Pandas Agent.
-- `.env`: Securely stores your API key.
-- `requirements.txt`: Project dependencies.
-- `data/`: Folder where uploaded CSVs are stored.
-- `chart_image/`: Folder for generated charts.
-- `venv/`: Virtual environment folder (Python dependencies).
+
+-   `app.py`: Main Streamlit application and UI logic.
+-   `agent.py`: LangChain agent configuration and prompt engineering.
+-   `.env`: Secure configuration for API keys and model selection.
+-   `data/`: Secure storage for uploaded files.
+-   `chart_image/`: Temporary storage for generated visualizations.
